@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { PersistenceModule } from './module/persistance/persistance.module';
 import { ProductsModule } from './module/products/products.module';
 import { PaymentsModule } from './module/payments/payments.module';
+import { S3Module } from './module/s3/s3.module';
 import { AuthModule } from './module/auth/auth.module';
 import { FirebaseAdminModule } from './common/firebase/firebase-admin.module';
 import dbConfig from './module/persistance/db-config';
@@ -21,6 +22,7 @@ import dbConfig from './module/persistance/db-config';
     AuthModule,
     ProductsModule,
     PaymentsModule,
+    S3Module,
   ],
   controllers: [AppController],
   providers: [AppService],

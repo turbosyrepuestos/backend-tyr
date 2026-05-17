@@ -34,6 +34,7 @@ async function bootstrap() {
     .addTag('authentication')
     .addTag('products')
     .addTag('payments')
+    .addTag('s3')
     .addTag('ApiKey')
     .build();
   const document = SwaggerModule.createDocument(app, config);

@@ -12,8 +12,8 @@ export class ProductsService {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const newProduct = new this.productModel(createProductDto);
+  async create(createProductDto: CreateProductDto, imageUrl: string): Promise<Product> {
+    const newProduct = new this.productModel({ ...createProductDto, imageUrl });
     return await newProduct.save();
   }
 
@@ -110,6 +110,20 @@ export class ProductsService {
 
   async findOne(id: string): Promise<Product> {
     const product = await this.productModel.findOne({ _id: id }).exec();
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return product;
+  }
+
+  async addImage(id: string, imageUrl: string): Promise<Product> {
+    const product = await this.productModel
+      .findOneAndUpdate(
+        { _id: id },
+        { $push: { images: imageUrl } },
+        { new: true },
+      )
+      .exec();
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }

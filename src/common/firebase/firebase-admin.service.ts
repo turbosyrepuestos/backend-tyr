@@ -10,7 +10,7 @@ import { join } from 'path';
 
 const SERVICE_ACCOUNT_FILE = join(
   process.cwd(),
-  'serviceAccountKey.json',
+  process.env.SERVICE_ACCOUNT_FILE_PATH ?? 'serviceAccountKey.json',
 );
 
 @Injectable()
