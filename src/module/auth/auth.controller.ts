@@ -16,7 +16,12 @@ import {
   ResetPasswordDto,
   FirebaseGoogleDto,
 } from './dto';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
 import type { Request as ExpressRequest } from 'express';
 import {
@@ -27,7 +32,17 @@ import {
   DocLogout,
 } from './decorators/auth-swagger.decorator';
 
-import { ApiKeyGuard } from 'src/common/guard/x-api-key/x-api-key.guard';
+import { ApiKey } from 'src/common/utils/apikey/entities/apikey.entitie';
+
+interface RequestWithApiKey extends ExpressRequest {
+  apiKey?: ApiKey;
+}
+
+interface RequestWithUser extends ExpressRequest {
+  user?: {
+    sub: string;
+  };
+}
 
 @ApiTags('authentication')
 @Controller('auth')
@@ -39,9 +54,9 @@ export class AuthController {
   @DocRegister()
   async registerUser(
     @Body() createAuthDto: RegisterDto,
-    @Request() req: ExpressRequest,
+    @Request() req: RequestWithApiKey,
   ) {
-    const apiKey = (req as any).apiKey;
+    const apiKey = req.apiKey;
     const token = await this.authService.register(createAuthDto, apiKey);
     return token;
   }
@@ -50,10 +65,10 @@ export class AuthController {
   @DocGenerateOtp()
   async generateOtp(
     @Body() generateOtpDto: GenerateOtpDto,
-    @Request() req: ExpressRequest,
+    @Request() req: RequestWithApiKey,
   ) {
-    const apiKey = (req as any).apiKey;
-    return this.authService.generateOtp(
+    const apiKey = req.apiKey;
+    return await this.authService.generateOtp(
       generateOtpDto.email,
       generateOtpDto.password,
       apiKey,
@@ -63,7 +78,10 @@ export class AuthController {
   @Post('otp/verify')
   @DocVerifyOtp()
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-    return this.authService.verifyOtp(verifyOtpDto.email, verifyOtpDto.code);
+    return await this.authService.verifyOtp(
+      verifyOtpDto.email,
+      verifyOtpDto.code,
+    );
   }
 
   @Post('google')
@@ -75,46 +93,53 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    description: 'JWT access + refresh y permisos (misma forma que verify OTP).',
+    description:
+      'JWT access + refresh y permisos (misma forma que verify OTP).',
   })
-  @ApiResponse({ status: 401, description: 'Token inválido o usuario no registrado.' })
+  @ApiResponse({
+    status: 401,
+    description: 'Token inválido o usuario no registrado.',
+  })
   async loginGoogle(@Body() dto: FirebaseGoogleDto) {
-    return this.authService.loginWithGoogleIdToken(dto.idToken);
+    return await this.authService.loginWithGoogleIdToken(dto.idToken);
   }
 
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
   @DocRefreshToken()
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshToken(refreshTokenDto.refresh_token);
+    return await this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @DocLogout()
-  async logout(@Request() req: ExpressRequest) {
+  async logout(@Request() req: RequestWithUser) {
     const accessToken = req.headers.authorization?.replace('Bearer ', '');
-    const userId = (req as any).user?.sub;
+    const userId = req.user?.sub;
 
     if (!accessToken || !userId) {
       throw new BadRequestException('Token o usuario no encontrado');
     }
 
-    return this.authService.logout(accessToken, userId);
+    return await this.authService.logout(accessToken, userId);
   }
 
   @Post('forgot-password')
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,
-    @Request() req: ExpressRequest,
+    @Request() req: RequestWithApiKey,
   ) {
-    const apiKey = (req as any).apiKey;
-    return this.authService.initiatePasswordRecovery(forgotPasswordDto, apiKey);
+    const apiKey = req.apiKey;
+    return await this.authService.initiatePasswordRecovery(
+      forgotPasswordDto,
+      apiKey,
+    );
   }
 
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return this.authService.resetPassword(resetPasswordDto);
+    return await this.authService.resetPassword(resetPasswordDto);
   }
 }

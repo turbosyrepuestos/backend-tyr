@@ -9,6 +9,13 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { UserRole } from './roles.enum';
 import { ROLES_KEY } from '../decorators/roleGuard.decorator';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user?: {
+    role: UserRole;
+  };
+}
 
 @Injectable()
 export class UserRoleGuard implements CanActivate {
@@ -25,7 +32,7 @@ export class UserRoleGuard implements CanActivate {
     // Corrección 1: Verificación inicial de roles permitidos
     if (!validRoles) return true;
 
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<RequestWithUser>();
     const user = req.user;
 
     // Corrección 2: Verificar que el usuario está autenticado

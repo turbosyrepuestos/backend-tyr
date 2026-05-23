@@ -1,6 +1,11 @@
 import { applyDecorators, SetMetadata, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiExtraModels,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import {
   S3_UPLOAD_FIELD_KEY,
   S3_UPLOAD_FOLDER_KEY,
@@ -15,6 +20,8 @@ export interface UploadImageToS3Options {
   maxSizeMb?: number;
   /** Si true, falla cuando no viene archivo en el campo */
   required?: boolean;
+  /** DTO class to merge into the Swagger body schema */
+  dto?: abstract new (...args: unknown[]) => unknown;
 }
 
 /**
@@ -23,7 +30,7 @@ export interface UploadImageToS3Options {
  *
  * @example
  * @Post()
- * @UploadImageToS3('image', { folder: 'products', required: true })
+ * @UploadImageToS3('image', { folder: 'products', required: true, dto: CreateDto })
  * create(@Body() dto: CreateDto, @S3UploadedUrl() imageUrl: string) {
  *   return this.service.create({ ...dto, imageUrl });
  * }
@@ -32,23 +39,50 @@ export function UploadImageToS3(
   field = 'file',
   options?: UploadImageToS3Options,
 ) {
-  return applyDecorators(
+  const decorators: Array<
+    ClassDecorator | MethodDecorator | PropertyDecorator
+  > = [
     SetMetadata(S3_UPLOAD_FIELD_KEY, field),
     SetMetadata(S3_UPLOAD_FOLDER_KEY, options?.folder),
     SetMetadata(S3_UPLOAD_REQUIRED_KEY, options?.required ?? false),
     ApiConsumes('multipart/form-data'),
-    ApiBody({
-      schema: {
-        type: 'object',
-        required: options?.required ? [field] : undefined,
-        properties: {
-          [field]: { type: 'string', format: 'binary' },
-        },
-      },
-    }),
     UseInterceptors(
       FileInterceptor(field, createImageMulterOptions(options?.maxSizeMb)),
       UploadImageToS3Interceptor,
     ),
-  );
+  ];
+
+  if (options?.dto) {
+    decorators.push(
+      ApiExtraModels(options.dto),
+      ApiBody({
+        schema: {
+          allOf: [
+            { $ref: getSchemaPath(options.dto) },
+            {
+              type: 'object',
+              required: options.required ? [field] : undefined,
+              properties: {
+                [field]: { type: 'string', format: 'binary' },
+              },
+            },
+          ],
+        },
+      }),
+    );
+  } else {
+    decorators.push(
+      ApiBody({
+        schema: {
+          type: 'object',
+          required: options?.required ? [field] : undefined,
+          properties: {
+            [field]: { type: 'string', format: 'binary' },
+          },
+        },
+      }),
+    );
+  }
+
+  return applyDecorators(...decorators);
 }

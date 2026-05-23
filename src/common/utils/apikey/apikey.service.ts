@@ -41,6 +41,8 @@ export class ApiKeyService {
 
   // Generador de API Key (puedes personalizarlo)
   private generateApiKey(): string {
-    return [...Array(30)].map(() => (Math.random() * 36).toString(36)).join('');
+    return Array.from({ length: 30 })
+      .map(() => Math.floor(Math.random() * 36).toString(36))
+      .join('');
   }
 }

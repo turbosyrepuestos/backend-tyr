@@ -10,7 +10,7 @@ export class GenerateOtpDto {
   @IsEmail()
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }) => value.toLowerCase())
+  @Transform(({ value }: { value: unknown }) => (value as string).toLowerCase())
   email: string;
 
   @ApiProperty({

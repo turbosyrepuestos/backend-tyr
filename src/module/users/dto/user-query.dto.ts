@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsInt, Min, IsBoolean, IsIn } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  IsBoolean,
+  IsIn,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -37,10 +44,10 @@ export class UserQueryDto {
     type: Boolean,
   })
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return value as boolean;
   })
   @IsBoolean()
   isActive?: boolean;

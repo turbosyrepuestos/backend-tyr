@@ -26,7 +26,8 @@ import { ApiKeyModule } from 'src/common/utils/apikey/apikey.module';
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? 'dev-change-me-in-production',
       signOptions: {
-        expiresIn: (process.env.ACCESS_TOKEN_EXPIRY ?? '30m') as any,
+        expiresIn: (process.env.ACCESS_TOKEN_EXPIRY ??
+          '30m') as unknown as number,
       },
     }),
     MongooseModule.forFeature([

@@ -120,7 +120,11 @@ export class AuthService {
     };
   }
 
-  async signToken(payload: JwtPayload, secretKey: string, options: any) {
+  async signToken(
+    payload: JwtPayload,
+    secretKey: string,
+    options: Record<string, unknown>,
+  ) {
     return await this.jwtService.signAsync(payload, {
       secret: secretKey,
       ...options,
@@ -132,9 +136,7 @@ export class AuthService {
    * solo si ya existe un usuario en MongoDB con ese correo o con el mismo firebaseUid.
    */
   async loginWithGoogleIdToken(idToken: string): Promise<VerifyOtpResponseDto> {
-    let decoded: Awaited<
-      ReturnType<FirebaseAdminService['verifyIdToken']>
-    >;
+    let decoded: Awaited<ReturnType<FirebaseAdminService['verifyIdToken']>>;
     try {
       decoded = await this.firebaseAdminService.verifyIdToken(idToken);
     } catch {
@@ -164,7 +166,7 @@ export class AuthService {
 
     const firebaseUid = decoded.uid;
 
-    let user =
+    const user =
       (await this.userService.findOneByFirebaseUid(firebaseUid)) ??
       (await this.userService.findOneByEmail(email));
 
@@ -263,12 +265,25 @@ export class AuthService {
       });
 
       // Obtener configuración de plantilla si existe
-      const templateConfig = apiKey?.emailTemplates instanceof Map 
-        ? apiKey.emailTemplates.get('login') 
-        : (apiKey?.emailTemplates as any)?.['login'];
+      const templateConfig =
+        apiKey?.emailTemplates instanceof Map
+          ? apiKey.emailTemplates.get('login')
+          : apiKey?.emailTemplates
+            ? (apiKey.emailTemplates as Record<string, unknown>)['login']
+            : undefined;
 
       // Enviar el OTP por email usando Brevo
-      await this.brevoService.sendOtpEmail(email, code, 'login', templateConfig);
+      await this.brevoService.sendOtpEmail(
+        email,
+        code,
+        'login',
+        templateConfig as {
+          subject?: string;
+          htmlContent?: string;
+          senderName?: string;
+          senderEmail?: string;
+        },
+      );
 
       return {
         message: 'Código OTP enviado exitosamente al email',
@@ -452,9 +467,16 @@ export class AuthService {
       // Decodificar el token para obtener su expiración
       let expiresAt: Date;
       try {
-        const decoded = this.jwtService.decode(accessToken) as any;
-        if (decoded && decoded.exp) {
-          expiresAt = new Date(decoded.exp * 1000);
+        const decoded: unknown = this.jwtService.decode(accessToken);
+        if (
+          decoded &&
+          typeof decoded === 'object' &&
+          'exp' in decoded &&
+          typeof (decoded as Record<string, unknown>).exp === 'number'
+        ) {
+          expiresAt = new Date(
+            ((decoded as Record<string, unknown>).exp as number) * 1000,
+          );
         } else {
           // Si no se puede decodificar, usar expiración por defecto
           expiresAt = new Date();
@@ -537,16 +559,26 @@ export class AuthService {
       });
 
       // Obtener configuración de plantilla si existe
-      const templateConfig = apiKey?.emailTemplates instanceof Map 
-        ? apiKey.emailTemplates.get('password_recovery') 
-        : (apiKey?.emailTemplates as any)?.['password_recovery'];
+      const templateConfig =
+        apiKey?.emailTemplates instanceof Map
+          ? apiKey.emailTemplates.get('password_recovery')
+          : apiKey?.emailTemplates
+            ? (apiKey.emailTemplates as Record<string, unknown>)[
+                'password_recovery'
+              ]
+            : undefined;
 
       // Enviar el OTP por email indicando que es para recuperación
       await this.brevoService.sendOtpEmail(
         email,
         code,
         'password_recovery',
-        templateConfig,
+        templateConfig as {
+          subject?: string;
+          htmlContent?: string;
+          senderName?: string;
+          senderEmail?: string;
+        },
       );
 
       return {

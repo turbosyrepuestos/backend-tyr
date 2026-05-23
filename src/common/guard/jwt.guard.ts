@@ -4,13 +4,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 import { Observable } from 'rxjs';
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException(
@@ -20,13 +22,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest<TUser = unknown>(
+    err: unknown,
+    user: TUser,
+    info: unknown,
+  ): TUser {
     if (err || !user) {
       const message =
-        err?.message ||
-        info?.message ||
+        (err instanceof Error ? err.message : null) ||
+        (info instanceof Error ? info.message : null) ||
         'Token inválido o expirado. Inicia sesión de nuevo.';
-      throw err || new UnauthorizedException(message);
+
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new UnauthorizedException(message);
     }
     return user;
   }

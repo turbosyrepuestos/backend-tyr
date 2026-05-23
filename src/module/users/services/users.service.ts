@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, QueryFilter } from 'mongoose';
 import { User, UserDocument } from '../schema/user.schema';
 import { RegisterDto } from '../../auth/dto/register-auth.dto';
 import { UserQueryDto } from '../dto/user-query.dto';
@@ -29,51 +29,54 @@ export class UserService {
       page = 1,
       limit = 10,
     } = queryDto;
-    const query: any = {};
+
+    const query: Record<string, unknown> = {};
 
     if (username) {
-      query.username = { $regex: username, $options: 'i' };
+      query['username'] = { $regex: username, $options: 'i' };
     }
 
     if (email) {
-      query.email = { $regex: email, $options: 'i' };
+      query['email'] = { $regex: email, $options: 'i' };
     }
 
     if (role) {
-      query.role = role;
+      query['role'] = role;
     }
 
     if (country) {
-      query.country = { $regex: country, $options: 'i' };
+      query['country'] = { $regex: country, $options: 'i' };
     }
 
     if (city) {
-      query.city = { $regex: city, $options: 'i' };
+      query['city'] = { $regex: city, $options: 'i' };
     }
 
     if (isActive !== undefined) {
-      query.isActive = isActive;
+      query['isActive'] = isActive;
     }
 
     if (q) {
-      query.$or = [
+      query['$or'] = [
         { username: { $regex: q, $options: 'i' } },
         { lastname: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
       ];
     }
 
+    const finalQuery = query as unknown as QueryFilter<UserDocument>;
+
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       this.userModel
-        .find(query)
+        .find(finalQuery)
         .select('-password')
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
-      this.userModel.countDocuments(query).exec(),
+      this.userModel.countDocuments(finalQuery).exec(),
     ]);
 
     return {
@@ -100,14 +103,20 @@ export class UserService {
   }
 
   async findOneByIdPublic(id: string): Promise<UserDocument> {
-    const user = await this.userModel.findById(id).select('-password').exec();
+    const user = await this.userModel
+      .findById(id)
+      .select('-password -firebaseUid -isActive')
+      .exec();
     if (!user) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDocument> {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserDocument> {
     const user = await this.userModel
       .findByIdAndUpdate(id, { $set: updateUserDto }, { new: true })
       .select('-password')

@@ -1,4 +1,4 @@
-import { applyDecorators, UseGuards } from '@nestjs/common';
+import { applyDecorators, CanActivate, Type, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guard/jwt.guard';
 import { UserRoleGuard } from '../guard/role.guard';
@@ -41,10 +41,7 @@ export function Auth(
     !Array.isArray(rolesOrOptions[0]) &&
     'roles' in rolesOrOptions[0]
   ) {
-    const options = rolesOrOptions[0] as {
-      roles?: UserRole[];
-      permissions?: string[];
-    };
+    const options = rolesOrOptions[0];
     roles = options.roles;
     perms = options.permissions;
   }
@@ -56,16 +53,19 @@ export function Auth(
       if (Array.isArray(arg)) {
         allRoles.push(...arg);
       } else if (typeof arg === 'string') {
-        allRoles.push(arg as UserRole);
+        allRoles.push(arg);
       }
     }
     roles = allRoles.length > 0 ? allRoles : undefined;
     perms = undefined;
   }
 
-  const decorators: any[] = [ApiBearerAuth(), ApiSecurity('x-api-key')];
+  const decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [
+    ApiBearerAuth(),
+    ApiSecurity('x-api-key'),
+  ];
 
-  const guards: any[] = [JwtAuthGuard]; // Siempre necesario para autenticación
+  const guards: (Type<CanActivate> | CanActivate)[] = [JwtAuthGuard]; // Siempre necesario para autenticación
 
   // Agregar metadata y guard de roles solo si se especifican roles
   if (roles && roles.length > 0) {

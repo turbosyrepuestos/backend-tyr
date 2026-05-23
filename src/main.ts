@@ -6,7 +6,6 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // Configuración de validación global
-  
 
   app.enableCors({
     origin: '*',
@@ -15,11 +14,11 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(
-    // new ValidationPipe({
-    //   whitelist: true,
-    //   forbidNonWhitelisted: true,
-    //   transform: true,
-    // }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   // Configuración de Swagger
@@ -44,4 +43,4 @@ async function bootstrap() {
   console.log(`Application is running on: ${await app.getUrl()}`);
   console.log(`Swagger documentation available at: ${await app.getUrl()}/docs`);
 }
-bootstrap();
+void bootstrap();

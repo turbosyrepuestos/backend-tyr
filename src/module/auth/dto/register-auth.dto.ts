@@ -15,7 +15,7 @@ export class RegisterDto {
   @ApiProperty({ example: 'recetarium1234@yopmail.com' })
   @IsEmail()
   @IsNotEmpty()
-  @Transform(({ value }) => value.toLowerCase())
+  @Transform(({ value }: { value: unknown }) => (value as string).toLowerCase())
   email: string;
 
   @ApiProperty({ example: 'juan' })

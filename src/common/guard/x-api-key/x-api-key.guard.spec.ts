@@ -1,7 +1,8 @@
-import { XApiKeyGuard } from './x-api-key.guard';
+import { ApiKeyGuard } from './x-api-key.guard';
+import { ApiKeyService } from '../../../common/utils/apikey/apikey.service';
 
-describe('XApiKeyGuard', () => {
+describe('ApiKeyGuard', () => {
   it('should be defined', () => {
-    expect(new XApiKeyGuard()).toBeDefined();
+    expect(new ApiKeyGuard({} as ApiKeyService)).toBeDefined();
   });
 });

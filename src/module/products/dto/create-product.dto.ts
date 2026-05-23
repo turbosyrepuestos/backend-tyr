@@ -1,4 +1,11 @@
-import { IsString, IsArray, IsOptional, ValidateNested, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  ValidateNested,
+  IsNotEmpty,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -37,7 +44,7 @@ export class CreateProductDto {
   @IsNotEmpty()
   sku: string;
 
-  @ApiProperty({ example: 2450.00 })
+  @ApiProperty({ example: 2450.0 })
   @IsNumber()
   @IsNotEmpty()
   price: number;
@@ -57,7 +64,11 @@ export class CreateProductDto {
   @IsNotEmpty()
   brand: string;
 
-  @ApiProperty({ example: ['Honeywell', 'HKS'], required: false, type: [String] })
+  @ApiProperty({
+    example: ['Honeywell', 'HKS'],
+    required: false,
+    type: [String],
+  })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

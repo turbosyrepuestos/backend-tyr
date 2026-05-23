@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { QueryFilter, Model, SortOrder } from 'mongoose';
 import { Product } from './schema/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -12,8 +12,14 @@ export class ProductsService {
     @InjectModel(Product.name) private readonly productModel: Model<Product>,
   ) {}
 
-  async create(createProductDto: CreateProductDto, imageUrl: string): Promise<Product> {
-    const newProduct = new this.productModel({ ...createProductDto, imageUrl });
+  async create(
+    createProductDto: CreateProductDto,
+    imageUrl: string,
+  ): Promise<Product> {
+    const newProduct = new this.productModel({
+      ...createProductDto,
+      images: [imageUrl],
+    });
     return await newProduct.save();
   }
 
@@ -32,44 +38,47 @@ export class ProductsService {
       sortBy = 'price',
       sortOrder = 'asc',
     } = queryDto;
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (name) {
-      query.name = { $regex: name, $options: 'i' };
+      query['name'] = { $regex: name, $options: 'i' };
     }
 
     if (sku) {
-      query.sku = { $regex: sku, $options: 'i' };
+      query['sku'] = { $regex: sku, $options: 'i' };
     }
 
     if (status) {
-      query.status = status.toUpperCase();
+      query['status'] = status.toUpperCase();
     }
 
     if (category) {
-      query.category = { $regex: category, $options: 'i' };
+      query['category'] = { $regex: category, $options: 'i' };
     }
 
     if (brand) {
-      query.$or = [
+      query['$or'] = [
         { brand: { $regex: brand, $options: 'i' } },
         { secondBrand: { $in: [new RegExp(brand, 'i')] } },
       ];
     }
 
     if (minPrice !== undefined || maxPrice !== undefined) {
-      query.price = {};
+      const priceQuery: Record<string, unknown> = {};
       if (minPrice !== undefined) {
-        query.price.$gte = minPrice;
+        priceQuery['$gte'] = minPrice;
       }
       if (maxPrice !== undefined) {
-        query.price.$lte = maxPrice;
+        priceQuery['$lte'] = maxPrice;
       }
+      query['price'] = priceQuery;
     }
+
+    let finalQuery: QueryFilter<Product> = query;
 
     if (q) {
       const searchRegex = { $regex: q, $options: 'i' };
-      const orConditions = [
+      const orConditions: QueryFilter<Product>[] = [
         { name: searchRegex },
         { description: searchRegex },
         { sku: searchRegex },
@@ -78,23 +87,33 @@ export class ProductsService {
         { category: searchRegex },
       ];
 
-      if (query.$or) {
-        query.$and = [{ $or: query.$or }, { $or: orConditions }];
-        delete query.$or;
+      if (finalQuery.$or) {
+        const existingOr = finalQuery.$or;
+        finalQuery = {
+          $and: [{ $or: existingOr }, { $or: orConditions }],
+        };
       } else {
-        query.$or = orConditions;
+        finalQuery = {
+          ...finalQuery,
+          $or: orConditions,
+        };
       }
     }
 
     const skip = (page - 1) * limit;
-    const sort: any = {};
+    const sort: Record<string, SortOrder> = {};
     if (sortBy) {
       sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
     }
 
     const [data, total] = await Promise.all([
-      this.productModel.find(query).sort(sort).skip(skip).limit(limit).exec(),
-      this.productModel.countDocuments(query).exec(),
+      this.productModel
+        .find(finalQuery)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.productModel.countDocuments(finalQuery).exec(),
     ]);
 
     return {
@@ -130,7 +149,10 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product> {
+  async update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
     const updatedProduct = await this.productModel
       .findOneAndUpdate({ _id: id }, updateProductDto, { new: true })
       .exec();

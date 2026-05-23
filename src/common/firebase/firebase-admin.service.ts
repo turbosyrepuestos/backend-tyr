@@ -53,7 +53,9 @@ export class FirebaseAdminService implements OnModuleInit {
     if (existsSync(SERVICE_ACCOUNT_FILE)) {
       try {
         const raw = readFileSync(SERVICE_ACCOUNT_FILE, 'utf-8');
-        this.logger.log('Cuenta de servicio cargada desde serviceAccountKey.json');
+        this.logger.log(
+          'Cuenta de servicio cargada desde serviceAccountKey.json',
+        );
         return JSON.parse(raw) as admin.ServiceAccount;
       } catch (err) {
         this.logger.error(

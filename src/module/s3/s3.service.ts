@@ -19,12 +19,10 @@ export class S3Service {
 
   constructor(private readonly config: ConfigService) {
     const region =
-      this.config.get<string>('AWS_REGION') ??
-      this.config.get<string>('S3_REGION') ??
-      'us-east-1';
-    const accessKeyId = this.config.get<string>('AWS_ACCESS_KEY_ID');
-    const secretAccessKey = this.config.get<string>('AWS_SECRET_ACCESS_KEY');
-    const bucketName = this.config.get<string>('AWS_S3_BUCKET_NAME');
+      process.env.AWS_REGION ?? process.env.S3_REGION ?? 'us-west-2';
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    const bucketName = process.env.AWS_S3_BUCKET_NAME;
 
     if (!accessKeyId || !secretAccessKey || !bucketName) {
       this.logger.warn(
@@ -34,14 +32,14 @@ export class S3Service {
 
     this.region = region;
     this.bucketName = bucketName ?? '';
-    this.publicBaseUrl = this.config.get<string>('AWS_S3_PUBLIC_BASE_URL');
+    this.publicBaseUrl = process.env.AWS_S3_PUBLIC_BASE_URL;
 
     this.s3Client = new S3Client({
       region,
-      credentials:
-        accessKeyId && secretAccessKey
-          ? { accessKeyId, secretAccessKey }
-          : undefined,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      },
     });
   }
 
@@ -80,7 +78,7 @@ export class S3Service {
         'Error subiendo archivo a S3',
         err instanceof Error ? err.stack : String(err),
       );
-      throw new InternalServerErrorException('No se pudo subir la imagen a S3');
+      throw new InternalServerErrorException('No ubir la imagen a S3');
     }
   }
 
@@ -103,7 +101,7 @@ export class S3Service {
     if (this.publicBaseUrl) {
       return `${this.publicBaseUrl.replace(/\/$/, '')}/${key}`;
     }
-    if (this.region === 'us-east-1') {
+    if (this.region === 'us-west-2') {
       return `https://${this.bucketName}.s3.amazonaws.com/${key}`;
     }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;

@@ -7,6 +7,13 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { RoleService } from 'src/module/roles/services/role.service';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user?: {
+    role: string;
+  };
+}
 
 /**
  * Guard que valida permisos resolviendo los del rol del usuario desde BD.
@@ -30,7 +37,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<RequestWithUser>();
     const user = req.user;
 
     if (!user) {
@@ -39,7 +46,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Resolver permisos del rol desde BD (no desde el JWT)
     const userPermissions: string[] =
-      await this.roleService.getPermissionsByRoleName(user.role ?? '');
+      await this.roleService.getPermissionsByRoleName(user.role);
 
     const hasAllPermissions = requiredPermissions.every((permission) =>
       this.checkPermission(userPermissions, permission),

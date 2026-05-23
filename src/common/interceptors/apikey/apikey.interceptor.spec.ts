@@ -1,7 +1,7 @@
-import { ApikeyInterceptor } from './apikey.interceptor';
+import { ApiKeyInterceptor } from './apikey.interceptor';
 
-describe('ApikeyInterceptor', () => {
+describe('ApiKeyInterceptor', () => {
   it('should be defined', () => {
-    expect(new ApikeyInterceptor()).toBeDefined();
+    expect(new ApiKeyInterceptor()).toBeDefined();
   });
 });

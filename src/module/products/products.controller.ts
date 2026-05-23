@@ -28,9 +28,15 @@ export class ProductsController {
   @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })
   @ApiOperation({ summary: 'Crear un nuevo producto' })
   @UploadImageToS3('image', { folder: 'products', required: true })
-  @ApiResponse({ status: 201, description: 'El producto ha sido creado exitosamente.' })
+  @ApiResponse({
+    status: 201,
+    description: 'El producto ha sido creado exitosamente.',
+  })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
-  create(@Body() createProductDto: CreateProductDto, @S3UploadedUrl() imageUrl: string | undefined) {
+  create(
+    @Body() createProductDto: CreateProductDto,
+    @S3UploadedUrl() imageUrl: string | undefined,
+  ) {
     if (!imageUrl) {
       throw new BadRequestException('No se pudo obtener la URL de la imagen');
     }
@@ -38,7 +44,9 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los productos con filtros y paginación' })
+  @ApiOperation({
+    summary: 'Obtener todos los productos con filtros y paginación',
+  })
   @ApiResponse({ status: 200, description: 'Lista paginada de productos.' })
   findAll(@Query() queryDto: ProductQueryDto) {
     return this.productsService.findAll(queryDto);

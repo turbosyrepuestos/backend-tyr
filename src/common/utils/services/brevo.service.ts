@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 
 interface SendEmailParams {
   to: string;
@@ -17,8 +17,7 @@ export class BrevoService {
   constructor() {
     this.apiKey = process.env.BREVO_API_KEY ?? '';
     this.apiUrl =
-      process.env.BREVO_API_URL ??
-      'https://api.brevo.com/v3/smtp/email';
+      process.env.BREVO_API_URL ?? 'https://api.brevo.com/v3/smtp/email';
   }
 
   async sendEmail(params: SendEmailParams): Promise<void> {
@@ -69,11 +68,15 @@ export class BrevoService {
       if (response.status !== 201) {
         throw new InternalServerErrorException('Error al enviar el email');
       }
-    } catch (error) {
-      console.error(
-        'Error al enviar email con Brevo:',
-        error.response?.data || error.message,
-      );
+    } catch (error: unknown) {
+      if (isAxiosError(error)) {
+        console.error(
+          'Error al enviar email con Brevo:',
+          error.response?.data || error.message,
+        );
+      } else if (error instanceof Error) {
+        console.error('Error al enviar email con Brevo:', error.message);
+      }
       throw new InternalServerErrorException('No se pudo enviar el email');
     }
   }
@@ -82,7 +85,7 @@ export class BrevoService {
     email: string,
     code: string,
     type: 'login' | 'password_recovery' = 'login',
-    templateConfig?: {
+    templateConfig?:  {
       subject?: string;
       htmlContent?: string;
       senderName?: string;
@@ -97,7 +100,8 @@ export class BrevoService {
       ? 'Has solicitado recuperar tu contraseña en <strong>Turbos y Repuestos</strong>. Confirma que eres tú con el siguiente código:'
       : 'Has solicitado un código para acceder a tu cuenta en <strong>Turbos y Repuestos</strong>. Usa el código a continuación:';
 
-    let subject = templateConfig?.subject || `${defaultTitle} | Turbos y Repuestos`;
+    const subject =
+      templateConfig?.subject || `${defaultTitle} | Turbos y Repuestos`;
     let htmlContent = templateConfig?.htmlContent;
 
     if (htmlContent) {

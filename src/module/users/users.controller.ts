@@ -7,12 +7,7 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { UserService } from './services/users.service';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -25,7 +20,10 @@ export class UsersController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })
+  @Auth({
+    roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    permissions: ['users:read'],
+  })
   @ApiOperation({
     summary: 'Obtener usuarios con filtros y paginación',
     description:
@@ -37,10 +35,16 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })
+  @Auth({
+    roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.USER],
+    permissions: ['users:read'],
+  })
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({ name: 'id', description: 'ID del usuario (MongoDB ObjectId)' })
-  @ApiResponse({ status: 200, description: 'Usuario encontrado (sin password).' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado (sin password).',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   findOne(@Param('id') id: string) {
     return this.userService.findOneByIdPublic(id);
@@ -50,7 +54,10 @@ export class UsersController {
   @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })
   @ApiOperation({ summary: 'Actualizar un usuario por ID' })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
-  @ApiResponse({ status: 200, description: 'Usuario actualizado (sin password).' })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado (sin password).',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado.' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
@@ -60,7 +67,8 @@ export class UsersController {
   @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN] })
   @ApiOperation({
     summary: 'Desactivar un usuario (soft delete)',
-    description: 'Marca isActive = false. No borra el registro de la base de datos.',
+    description:
+      'Marca isActive = false. No borra el registro de la base de datos.',
   })
   @ApiParam({ name: 'id', description: 'ID del usuario' })
   @ApiResponse({ status: 200, description: 'Usuario desactivado.' })

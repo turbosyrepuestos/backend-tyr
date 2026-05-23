@@ -1,7 +1,9 @@
-import { All, Controller, HttpCode, Logger, Req } from '@nestjs/common';
+import { Controller, Get, HttpCode, Logger, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PaymentsService } from './payments.service';
+import { Auth } from 'src/common/decorators/auth.decorator';
+import { UserRole } from 'src/common/guard/roles.enum';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -14,7 +16,8 @@ export class PaymentsController {
    * URL de confirmación ePayco (POST o GET según configuración del checkout).
    * Debe ser pública (sin JWT). Configura la misma ruta en el panel ePayco.
    */
-  @All('epayco/webhook')
+  @Auth({ roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.USER] })
+  @Get('epayco/webhook')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Webhook ePayco (confirmación de pago)',
